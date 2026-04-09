@@ -42,8 +42,12 @@ pub struct HostInfo {
 #[derive(Debug, Clone, Deserialize)]
 pub struct DanmuInfoResponse {
     pub code: i32,
+    #[serde(default)]
     pub message: String,
-    pub data: DanmuInfoData,
+    #[serde(default)]
+    pub msg: String,
+    #[serde(default)]
+    pub data: Option<DanmuInfoData>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -179,6 +183,7 @@ impl BiliClient {
         Ok(payload.data.room_id)
     }
 
+    #[allow(dead_code)]
     pub async fn get_danmu_info(&self, room_id: u64, cookie: &str) -> Result<DanmuInfoResponse> {
         let query = self
             .sign_query(&[
@@ -215,6 +220,72 @@ impl BiliClient {
         }
 
         Ok(payload)
+    }
+
+    pub async fn get_danmu_info_data(&self, room_id: u64, cookie: &str) -> Result<DanmuInfoData> {
+        for attempt in 0..2 {
+            let query = self
+                .sign_query(&[
+                    ("id", room_id.to_string()),
+                    ("type", "0".to_owned()),
+                    ("wts", Utc::now().timestamp().to_string()),
+                ])
+                .await?;
+
+            let response = self
+                .request(
+                    self.http.get(format!(
+                        "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?{query}"
+                    )),
+                    cookie,
+                )
+                .send()
+                .await
+                .context("请求 getDanmuInfo 失败")?
+                .error_for_status()
+                .context("getDanmuInfo returned error status")?;
+
+            let body = response
+                .text()
+                .await
+                .context("读取 getDanmuInfo 响应失败")?;
+            let payload = serde_json::from_str::<DanmuInfoResponse>(&body).with_context(|| {
+                format!(
+                    "解析 getDanmuInfo 响应失败，原始响应：{}",
+                    shorten_text(&body, 200)
+                )
+            })?;
+
+            if payload.code == 0 {
+                if let Some(data) = payload.data {
+                    return Ok(data);
+                }
+
+                bail!(
+                    "getDanmuInfo 返回成功，但缺少 data 字段：{}",
+                    shorten_text(&body, 200)
+                );
+            }
+
+            let message = if payload.message.trim().is_empty() {
+                payload.msg.trim()
+            } else {
+                payload.message.trim()
+            };
+
+            if payload.code == -352 && attempt == 0 {
+                tokio::time::sleep(Duration::from_millis(300)).await;
+                continue;
+            }
+
+            bail!(
+                "getDanmuInfo 接口返回错误 code={} message={}",
+                payload.code,
+                if message.is_empty() { "<空>" } else { message }
+            );
+        }
+
+        bail!("getDanmuInfo 重试后仍然失败")
     }
 
     pub async fn check_and_refresh_cookie(
@@ -556,6 +627,18 @@ fn sanitize_value(value: &str) -> String {
         .chars()
         .filter(|ch| !matches!(ch, '!' | '\'' | '(' | ')' | '*'))
         .collect()
+}
+
+fn shorten_text(text: &str, max_chars: usize) -> String {
+    let mut output = String::new();
+    for (index, ch) in text.chars().enumerate() {
+        if index >= max_chars {
+            output.push('…');
+            break;
+        }
+        output.push(ch);
+    }
+    output
 }
 
 fn encode_query(values: &BTreeMap<String, String>) -> String {

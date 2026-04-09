@@ -310,12 +310,14 @@ pub async fn run_session(
 ) -> Result<()> {
     let auth_context = api.prepare_auth(&config.cookie).await?;
     let real_room_id = api.get_real_room_id(config.room_id, &config.cookie).await?;
-    let danmu_info = api.get_danmu_info(real_room_id, &config.cookie).await?;
+    let danmu_info = api
+        .get_danmu_info_data(real_room_id, &config.cookie)
+        .await?;
 
     connect_loop(
         real_room_id,
-        &danmu_info.data.host_list,
-        &danmu_info.data.token,
+        &danmu_info.host_list,
+        &danmu_info.token,
         &auth_context,
         event_tx,
         cancel,
