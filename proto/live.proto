@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package live;
+
+service LiveService {
+  rpc Subscribe(Empty) returns (stream LiveEvent);
+}
+
+message Empty {}
+
+message LiveEvent {
+  oneof payload {
+    DanmuMsg danmu = 1;
+    PopularityMsg popularity = 2;
+    GiftData gift = 3;
+    string sys_msg = 4;
+    string error = 5;
+    SuperChatMsg super_chat = 6;
+    InteractMsg interaction = 7;
+    OnlineRankCountMsg online_rank_count = 8;
+    ToastMsg toast = 9;
+    GiftStarProcessMsg gift_star_process = 10;
+    ComboSendData combo_send = 11;
+  }
+}
+
+message DanmuMsg {
+  string content = 1;
+  int64 user_id = 2;
+  string nickname = 3;
+  string medal_name = 4;
+  int32 medal_level = 5;
+}
+
+message PopularityMsg {
+  int32 popularity = 1;
+}
+
+message GiftData {
+  int64 uid = 1;
+  string uname = 2;
+  string face = 3;
+  string gift_name = 4;
+  int32 gift_num = 5;
+  double price = 6;
+  int32 combo_total_coin = 7;
+  int32 total_coin = 8;
+  string coin_type = 9;
+  string action = 10;
+  GiftInfo gift_info = 11;
+  MedalInfo medal_info = 12;
+  ComboSend combo_send = 13;
+}
+
+message GiftInfo {
+  string img_basic = 1;
+  string gif = 2;
+}
+
+message MedalInfo {
+  string medal_name = 1;
+  int32 medal_level = 2;
+}
+
+message ComboSend {
+  string combo_id = 1;
+  int32 combo_num = 2;
+}
+
+message UserInfo {
+  string face = 1;
+  string uname = 2;
+}
+
+message SuperChatMsg {
+  MedalInfo medal_info = 1;
+  string message = 2;
+  string font_color = 3;
+  int32 price = 4;
+  UserInfo user_info = 5;
+  int64 start_time = 6;
+  int64 end_time = 7;
+}
+
+message InteractMsg {
+  int64 id = 1;
+  int32 status = 2;
+  int32 type = 3;
+  string data = 4;
+}
+
+message OnlineRankCountMsg {
+  int32 count = 1;
+  string count_text = 2;
+  int32 online_count = 3;
+  string online_count_text = 4;
+}
+
+message ToastMsg {
+  int32 guard_level = 1;
+  string username = 2;
+  int32 price = 3;
+  int64 uid = 4;
+  int32 num = 5;
+  string unit = 6;
+  string role_name = 7;
+}
+
+message GiftStarProcessMsg {
+  string message = 1;
+}
+
+message InteractData102 {
+  repeated InteractCombo combo = 1;
+}
+
+message InteractCombo {
+  int64 id = 1;
+  int32 status = 2;
+  string content = 3;
+  int32 cnt = 4;
+  string guide = 5;
+}
+
+message InteractDataNotice {
+  int32 cnt = 1;
+  string suffix_text = 2;
+  int32 gift_id = 3;
+}
+
+message ComboSendData {
+  string action = 1;
+  string batch_combo_id = 2;
+  int32 batch_combo_num = 3;
+  string combo_id = 4;
+  int32 combo_num = 5;
+  int32 combo_total_coin = 6;
+  int32 dmscore = 7;
+  int32 gift_id = 8;
+  string gift_name = 9;
+  int32 gift_num = 10;
+  bool is_join_receiver = 11;
+  bool is_naming = 12;
+  int32 is_show = 13;
+  MedalInfo medal_info = 14;
+  string name_color = 15;
+  string r_uname = 16;
+  UserInfo receive_user_info = 17;
+  int64 ruid = 18;
+  int32 total_num = 19;
+  int64 uid = 20;
+  string uname = 21;
+}
