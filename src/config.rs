@@ -16,6 +16,8 @@ pub struct AppConfig {
     pub servers: Vec<ServerSettings>,
     #[serde(default = "default_transparent")]
     pub transparent: bool,
+    #[serde(default = "default_always_on_top")]
+    pub always_on_top: bool,
 }
 
 impl Default for AppConfig {
@@ -27,6 +29,7 @@ impl Default for AppConfig {
             debug: false,
             servers: default_servers(),
             transparent: true,
+            always_on_top: false,
         }
     }
 }
@@ -48,6 +51,10 @@ pub enum ServerType {
 
 fn default_transparent() -> bool {
     true
+}
+
+fn default_always_on_top() -> bool {
+    false
 }
 
 fn default_servers() -> Vec<ServerSettings> {

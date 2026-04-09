@@ -6,6 +6,7 @@ use std::time::Duration;
 use anyhow::Result;
 use chrono::Utc;
 use eframe::egui;
+use eframe::egui::viewport::WindowLevel;
 use eframe::egui::{
     Align, Button, Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Frame,
     Layout, Margin, RichText, ScrollArea, Sense, Stroke, TextStyle, UiBuilder, Vec2,
@@ -48,8 +49,10 @@ pub struct YuunaApp {
     refresh_token_input: String,
     servers: Vec<ServerSettings>,
     transparent: bool,
+    always_on_top: bool,
     popularity: i32,
     show_settings: bool,
+    window_level_dirty: bool,
 }
 
 struct StatusLine {
@@ -100,8 +103,10 @@ impl YuunaApp {
             refresh_token_input: cfg.refresh_token,
             servers: cfg.servers,
             transparent: cfg.transparent,
+            always_on_top: cfg.always_on_top,
             popularity: 0,
             show_settings: false,
+            window_level_dirty: false,
         })
     }
 
@@ -115,6 +120,10 @@ impl YuunaApp {
                     self.refresh_token_input = cfg.refresh_token;
                     self.servers = cfg.servers;
                     self.transparent = cfg.transparent;
+                    if self.always_on_top != cfg.always_on_top {
+                        self.always_on_top = cfg.always_on_top;
+                        self.window_level_dirty = true;
+                    }
                 }
             }
         }
@@ -308,6 +317,7 @@ impl YuunaApp {
             debug: false,
             servers: self.servers.clone(),
             transparent: self.transparent,
+            always_on_top: self.always_on_top,
         };
         if let Err(err) = self.backend.save_config(cfg) {
             self.push_status(format!("发送配置失败：{err}"), true);
@@ -517,6 +527,13 @@ impl YuunaApp {
                                 toggle(ui, &mut self.transparent);
                             });
                         });
+                        ui.add_space(10.0);
+                        ui.horizontal(|ui| {
+                            ui.label(RichText::new("窗口置顶").size(13.5).strong().color(C_TEXT));
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                toggle(ui, &mut self.always_on_top);
+                            });
+                        });
                         ui.add_space(18.0);
                         section(ui, "直播间配置");
                         field(ui, "房间号");
@@ -621,6 +638,14 @@ impl Drop for YuunaApp {
 impl eframe::App for YuunaApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll_backend();
+        if self.window_level_dirty {
+            ctx.send_viewport_cmd(ViewportCommand::WindowLevel(if self.always_on_top {
+                WindowLevel::AlwaysOnTop
+            } else {
+                WindowLevel::Normal
+            }));
+            self.window_level_dirty = false;
+        }
         self.cleanup();
         egui::CentralPanel::default()
             .frame(Frame::new().fill(Color32::from_rgba_unmultiplied(0, 0, 0, 0)))

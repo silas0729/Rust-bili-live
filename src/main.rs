@@ -6,7 +6,7 @@ mod grpc;
 mod live;
 
 use anyhow::Result;
-use eframe::egui::ViewportBuilder;
+use eframe::egui::{ViewportBuilder, viewport::WindowLevel};
 
 fn main() -> Result<()> {
     let initial_config = config::load();
@@ -18,7 +18,11 @@ fn main() -> Result<()> {
         .with_resizable(true)
         .with_transparent(true)
         .with_decorations(false)
-        .with_always_on_top();
+        .with_window_level(if initial_config.always_on_top {
+            WindowLevel::AlwaysOnTop
+        } else {
+            WindowLevel::Normal
+        });
 
     let options = eframe::NativeOptions {
         viewport,
